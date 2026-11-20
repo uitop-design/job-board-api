@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { jobQuerySchema } from "../validation.js";
+import { jobQuerySchema, jobSchema, jobUpdateSchema } from "../validation.js";
 import { pageMeta, toOffset } from "../pagination.js";
 
 export const jobsRouter = Router();
@@ -40,6 +40,50 @@ jobsRouter.get("/:id", async (req, res) => {
     .select("jobs.*", "companies.name as company_name", "companies.website as company_website")
     .where("jobs.id", Number(req.params.id))
     .first();
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  res.json(job);
+});
+
+jobsRouter.post("/", async (req, res) => {
+  const parsed = jobSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const company = await db("companies").where({ id: parsed.data.company_id }).first("id");
+  if (!company) {
+    res.status(422).json({ error: "Unknown company_id" });
+    return;
+  }
+  const [job] = await db("jobs").insert(parsed.data).returning("*");
+  res.status(201).json(job);
+});
+
+jobsRouter.patch("/:id", async (req, res) => {
+  const parsed = jobUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const [job] = await db("jobs")
+    .where({ id: Number(req.params.id) })
+    .update({ ...parsed.data, updated_at: new Date() })
+    .returning("*");
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  res.json(job);
+});
+
+jobsRouter.post("/:id/close", async (req, res) => {
+  const [job] = await db("jobs")
+    .where({ id: Number(req.params.id) })
+    .update({ status: "closed", updated_at: new Date() })
+    .returning("*");
   if (!job) {
     res.status(404).json({ error: "Job not found" });
     return;
