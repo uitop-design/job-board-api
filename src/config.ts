@@ -6,6 +6,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().url().default("postgres://jobs:jobs@localhost:5432/jobs"),
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
+  JOBS_CACHE_TTL: z.coerce.number().int().positive().default(60),
 });
 
 const env = envSchema.parse(process.env);
@@ -15,6 +16,7 @@ export const config = {
   port: env.PORT,
   databaseUrl: env.DATABASE_URL,
   redisUrl: env.REDIS_URL,
+  jobsCacheTtl: env.JOBS_CACHE_TTL,
 } as const;
 
 export type Config = typeof config;
