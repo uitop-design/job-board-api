@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import { companiesRouter } from "./routes/companies.js";
 
 export function createApp(): Express {
   const app = express();
@@ -7,6 +8,8 @@ export function createApp(): Express {
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  app.use("/companies", companiesRouter);
 
   return app;
 }
