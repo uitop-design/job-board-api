@@ -9,6 +9,7 @@ const envSchema = z.object({
   JOBS_CACHE_TTL: z.coerce.number().int().positive().default(60),
   APPLY_RATE_MAX: z.coerce.number().int().positive().default(5),
   APPLY_RATE_WINDOW: z.coerce.number().int().positive().default(3600),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -20,6 +21,7 @@ export const config = {
   redisUrl: env.REDIS_URL,
   jobsCacheTtl: env.JOBS_CACHE_TTL,
   applyRateLimit: { max: env.APPLY_RATE_MAX, windowSec: env.APPLY_RATE_WINDOW },
+  logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === "production" ? "info" : "debug"),
 } as const;
 
 export type Config = typeof config;
