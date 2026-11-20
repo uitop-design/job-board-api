@@ -1,7 +1,6 @@
+import { config } from "./config.js";
 import { createApp } from "./app.js";
 
-const port = Number(process.env.PORT ?? 4000);
-
-createApp().listen(port, () => {
-  console.log(`job-board-api listening on :${port}`);
+createApp().listen(config.port, () => {
+  console.log(`job-board-api listening on :${config.port}`);
 });
