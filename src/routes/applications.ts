@@ -2,12 +2,14 @@ import { Router } from "express";
 import { db } from "../db.js";
 import { conflict, idParam, notFound } from "../errors.js";
 import { applicationSchema } from "../validation.js";
+import { rateLimit } from "../middleware/rateLimit.js";
+import { config } from "../config.js";
 
 export const applicationsRouter = Router({ mergeParams: true });
 
 type Params = { jobId: string };
 
-applicationsRouter.post<Params>("/", async (req, res) => {
+applicationsRouter.post<Params>("/", rateLimit({ prefix: "apply", ...config.applyRateLimit }), async (req, res) => {
   const data = applicationSchema.parse(req.body);
 
   const job = await db("jobs").where({ id: idParam(req.params.jobId) }).first("id", "status");
