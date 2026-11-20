@@ -1,17 +1,13 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { HttpError, idParam, notFound } from "../errors.js";
 import { jobQuerySchema, jobSchema, jobUpdateSchema } from "../validation.js";
 import { pageMeta, toOffset } from "../pagination.js";
 
 export const jobsRouter = Router();
 
 jobsRouter.get("/", async (req, res) => {
-  const parsed = jobQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const f = parsed.data;
+  const f = jobQuerySchema.parse(req.query);
 
   const query = db("jobs")
     .join("companies", "companies.id", "jobs.company_id")
@@ -38,55 +34,35 @@ jobsRouter.get("/:id", async (req, res) => {
   const job = await db("jobs")
     .join("companies", "companies.id", "jobs.company_id")
     .select("jobs.*", "companies.name as company_name", "companies.website as company_website")
-    .where("jobs.id", Number(req.params.id))
+    .where("jobs.id", idParam(req.params.id))
     .first();
-  if (!job) {
-    res.status(404).json({ error: "Job not found" });
-    return;
-  }
+  if (!job) throw notFound("Job");
   res.json(job);
 });
 
 jobsRouter.post("/", async (req, res) => {
-  const parsed = jobSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const company = await db("companies").where({ id: parsed.data.company_id }).first("id");
-  if (!company) {
-    res.status(422).json({ error: "Unknown company_id" });
-    return;
-  }
-  const [job] = await db("jobs").insert(parsed.data).returning("*");
+  const data = jobSchema.parse(req.body);
+  const company = await db("companies").where({ id: data.company_id }).first("id");
+  if (!company) throw new HttpError(422, "Unknown company_id");
+  const [job] = await db("jobs").insert(data).returning("*");
   res.status(201).json(job);
 });
 
 jobsRouter.patch("/:id", async (req, res) => {
-  const parsed = jobUpdateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
+  const data = jobUpdateSchema.parse(req.body);
   const [job] = await db("jobs")
-    .where({ id: Number(req.params.id) })
-    .update({ ...parsed.data, updated_at: new Date() })
+    .where({ id: idParam(req.params.id) })
+    .update({ ...data, updated_at: new Date() })
     .returning("*");
-  if (!job) {
-    res.status(404).json({ error: "Job not found" });
-    return;
-  }
+  if (!job) throw notFound("Job");
   res.json(job);
 });
 
 jobsRouter.post("/:id/close", async (req, res) => {
   const [job] = await db("jobs")
-    .where({ id: Number(req.params.id) })
+    .where({ id: idParam(req.params.id) })
     .update({ status: "closed", updated_at: new Date() })
     .returning("*");
-  if (!job) {
-    res.status(404).json({ error: "Job not found" });
-    return;
-  }
+  if (!job) throw notFound("Job");
   res.json(job);
 });
