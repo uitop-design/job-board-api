@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import { companiesRouter } from "./routes/companies.js";
 import { jobsRouter } from "./routes/jobs.js";
+import { applicationsRouter } from "./routes/applications.js";
 
 export function createApp(): Express {
   const app = express();
@@ -12,6 +13,7 @@ export function createApp(): Express {
 
   app.use("/companies", companiesRouter);
   app.use("/jobs", jobsRouter);
+  app.use("/jobs/:jobId/applications", applicationsRouter);
 
   return app;
 }

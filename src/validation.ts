@@ -57,3 +57,12 @@ export function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+export const applicationSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().toLowerCase().email().max(200),
+  resume_url: z.string().url().max(500).optional(),
+  cover_letter: z.string().trim().max(5000).optional(),
+});
+
+export type ApplicationInput = z.infer<typeof applicationSchema>;
