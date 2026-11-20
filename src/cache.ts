@@ -32,3 +32,17 @@ export function keyFor(prefix: string, params: Record<string, unknown>): string 
     .map((k) => `${k}=${String(params[k]).toLowerCase()}`);
   return `${prefix}:${parts.join("&")}`;
 }
+
+/** Drop every key under a prefix. Uses SCAN so Redis is never blocked. */
+export async function invalidatePrefix(prefix: string): Promise<void> {
+  try {
+    let cursor = "0";
+    do {
+      const [next, keys] = await redis.scan(cursor, "MATCH", `${prefix}:*`, "COUNT", 200);
+      if (keys.length) await redis.del(...keys);
+      cursor = next;
+    } while (cursor !== "0");
+  } catch {
+    // cached pages expire by TTL anyway
+  }
+}
